@@ -46,7 +46,7 @@ class Project:
         self.avatar = avatar
 
 
-async def project2object(project: dict) -> Project:
+async def project_to_object(project: dict) -> Project:
     return Project(
         project.get(Project.API_MAP['id']),
         project.get(Project.API_MAP['name']),
@@ -68,9 +68,8 @@ async def _get_projects(session: aiohttp.ClientSession, private_token: str, visi
         ) as resp:
             resp.raise_for_status()
             projects_json = await resp.json()
-            convert_project_tasks = [project2object(project) for project in projects_json]
-            projects = await asyncio.gather(*convert_project_tasks)
-            return projects
+            convert_project_tasks = [project_to_object(project) for project in projects_json]
+            return await asyncio.gather(*convert_project_tasks)
     except aiohttp.ClientResponseError as err:
         if err.status == 401:
             raise UnauthorizedException(err.message)
@@ -81,5 +80,4 @@ async def _get_projects(session: aiohttp.ClientSession, private_token: str, visi
 
 
 async def get_private_projects(session: aiohttp.ClientSession, private_token: str) -> List[Project]:
-    projects = await _get_projects(session, private_token, ProjectType.PRIVATE)
-    return projects
+    return await _get_projects(session, private_token, ProjectType.PRIVATE)
