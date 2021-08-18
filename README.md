@@ -7,3 +7,8 @@ It is a simple bot for [__Limoo__](https://limoo.im/) platform to get Gitlab pri
 * Set bot username and password in ```config.ini``` file.
 
 * Run ```main.py```. 
+
+-----------
+__Sina Moammar__
+
+Email: [sina.moammar@gmail.com](mailto:sina.moammar@gmail.com)
