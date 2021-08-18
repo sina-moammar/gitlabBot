@@ -25,11 +25,11 @@ class _Command:
         return await self.method(*args, *self.args)
 
 
-async def _help(*args):
+async def help_command(*args):
     return i18n.t('response.help_message')
 
 
-async def _projects_to_md(projects: List[Project]):
+async def _projects_to_md(projects: List[Project]) -> str:
     md_s = []
     for project in projects:
         formatted_desc = re.sub('[\r\n]+', '', project.description) if project.description else None
@@ -41,9 +41,9 @@ async def _projects_to_md(projects: List[Project]):
     return "\n".join(md_s)
 
 
-async def _get_private_projects(session: aiohttp.ClientSession, private_token: str = None, *args) -> str:
+async def get_private_projects_command(session: aiohttp.ClientSession, private_token: str = None, *args) -> str:
     if isinstance(private_token, str) and private_token != i18n.t('commands.help'):
-        response_text: str = ""
+        response_text = ""
         try:
             projects = await get_private_projects(session, private_token)
             response_text += await _projects_to_md(projects)
@@ -57,14 +57,14 @@ async def _get_private_projects(session: aiohttp.ClientSession, private_token: s
         return i18n.t('response.get_project.help_message')
 
 
-async def _process_event(event) -> Union[None, _Command]:
+async def _process_event(event: dict) -> Union[None, _Command]:
     command = None
     if (event['event'] == 'message_created' and
             not (event['data']['message']['type'] or
                  event['data']['message']['user_id'] == self['id'])):
         msg_parts = event['data']['message']['text'].split(' ')
-        if len(msg_parts) > 0 and msg_parts[0] == i18n.t('commands.gitlab'):
-            if len(msg_parts) < 2:
+        if msg_parts[0] == i18n.t('commands.gitlab'):
+            if len(msg_parts) == 1:
                 command = _Command(_COMMANDS[i18n.t('commands.help')])
             else:
                 if msg_parts[1] in _COMMANDS:
@@ -77,7 +77,7 @@ async def _process_event(event) -> Union[None, _Command]:
     return command
 
 
-async def respond(event: dict, session: aiohttp.ClientSession):
+async def _respond(event: dict, session: aiohttp.ClientSession) -> None:
     command = await _process_event(event)
     if command:
         response_text = await command.run(session)
@@ -89,22 +89,22 @@ async def respond(event: dict, session: aiohttp.ClientSession):
         )
 
 
-async def main():
+async def main() -> None:
     global ld, self
     ld = LimooDriver('web.limoo.im', config['BOT']['Username'], config['BOT']['Password'])
     try:
         self = await ld.users.get()
         forever = asyncio.get_running_loop().create_future()
         async with aiohttp.ClientSession() as session:
-            ld.set_event_handler(lambda event: asyncio.create_task(respond(event, session)))
+            ld.set_event_handler(lambda event: asyncio.create_task(_respond(event, session)))
             await forever
     finally:
         await ld.close()
 
 
 _COMMANDS = {
-    i18n.t('commands.project'): _get_private_projects,
-    i18n.t('commands.help'): _help,
+    i18n.t('commands.project'): get_private_projects_command,
+    i18n.t('commands.help'): help_command,
 }
 
 asyncio.run(main())

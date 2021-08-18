@@ -3,10 +3,9 @@ from typing import List
 import aiohttp
 
 
-_base_url = 'https://gitlab.com/api/v4'
-_project_dir = 'projects'
-
-_project_types_map = {
+_BASE_URL = 'https://gitlab.com/api/v4'
+_PROJECT_DIR = 'projects'
+_PROJECT_TYPES_MAP = {
     'pr': 'private',
     'pu': 'public',
     'in': 'internal'
@@ -46,7 +45,7 @@ class Project:
         self.avatar = avatar
 
 
-async def project_to_object(project: dict) -> Project:
+async def _project_to_object(project: dict) -> Project:
     return Project(
         project.get(Project.API_MAP['id']),
         project.get(Project.API_MAP['name']),
@@ -60,15 +59,15 @@ async def project_to_object(project: dict) -> Project:
 async def _get_projects(session: aiohttp.ClientSession, private_token: str, visibility: str) -> List[Project]:
     try:
         async with session.get(
-            f"{_base_url}/{_project_dir}",
+            f"{_BASE_URL}/{_PROJECT_DIR}",
             params={
                 'private_token': private_token,
-                'visibility': _project_types_map.get(visibility)
+                'visibility': _PROJECT_TYPES_MAP.get(visibility)
             }
         ) as resp:
             resp.raise_for_status()
             projects_json = await resp.json()
-            convert_project_tasks = [project_to_object(project) for project in projects_json]
+            convert_project_tasks = [_project_to_object(project) for project in projects_json]
             return await asyncio.gather(*convert_project_tasks)
     except aiohttp.ClientResponseError as err:
         if err.status == 401:
